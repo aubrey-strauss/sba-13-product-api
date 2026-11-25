@@ -17,3 +17,7 @@ const productSchema = new mongoose.Schema({
   tags: { type: [String] },
   createdAt: { type: Date, default: Date.now },
 });
+// turn blueprint into model we can save and search
+const Product = mongoose.model("Product", productSchema);
+
+export default Product;
