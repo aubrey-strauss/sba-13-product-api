@@ -19,7 +19,11 @@ router.post("/", async (req, res) => {
 router.get("/", async (req, res) => {
   //It doesn't clash with /:id, because "/" only matches exact path
   try {
+    const { category } = req.query; //pulls category out of the URL's query string
     const filter = {}; // an empty filter object - build the query dynamically
+    if (category) {
+      filter.category = category; // only filter by category if one was asked for
+    }
     const products = await Product.find(filter);
     res.json(products); // respond with an array
   } catch (err) {
