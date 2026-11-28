@@ -20,7 +20,7 @@ router.post("/", async (req, res) => {
 router.get("/", async (req, res) => {
   //It doesn't clash with /:id, because "/" only matches exact path
   try {
-    const { category, minPrice, maxPrice } = req.query; //pulls category out of the URL's query string
+    const { category, minPrice, maxPrice, sortBy } = req.query; //pulls category out of the URL's query string
 
     const filter = {}; // an empty filter object - build the query dynamically
     if (category) {
@@ -35,15 +35,25 @@ router.get("/", async (req, res) => {
         filter.price.$lte = Number(maxPrice); // $lte = "less than or equal to"
       }
     }
-    if (Number.isNaN(filter.price.$gte) || Number.isNaN(filter.price?.$lte)) {
+    if (Number.isNaN(filter.price?.$gte) || Number.isNaN(filter.price?.$lte)) {
       // NaN ("not a number")
       return res
         .status(400)
         .jason({ message: "minPrice and maxPrice must be numbers" }); // reject prices that aren't numbers, like ?minPrice=abc
     }
+    let sort = {}; // decide the sort order: 1 = low to high, -1 = high to low
+    if (sortBy === "price_asc") {
+      sort = { price: 1 };
+    } else if (sortBy === "price_desc") {
+      sort = { price: -1 };
+    } else if (sortBy) {
+      return res
+        .status(400)
+        .json({ message: "sortBy must be price_asc or price_desc " });
+    }
 
-    const products = await Product.find(filter);
-    res.json(products); // respond with an array
+    const product = await Product.find(filter).sort(sort);
+    res.json(product); // respond with an array
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message }); // why 500? there's no id so the only thing that can go wrong is the server
   }
