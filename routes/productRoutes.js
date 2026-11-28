@@ -15,7 +15,17 @@ router.post("/", async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
-
+// GET /api/products: list products
+router.get("/", async (req, res) => {
+  //It doesn't clash with /:id, because "/" only matches exact path
+  try {
+    const filter = {}; // an empty filter object - build the query dynamically
+    const products = await Product.find(filter);
+    res.json(products); // respond with an array
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message }); // why 500? there's no id so the only thing that can go wrong is the server
+  }
+});
 router.get("/:id", async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -30,6 +40,7 @@ router.get("/:id", async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
+// PUT
 router.put("/:id", async (req, res) => {
   try {
     const product = await Product.findByIdAndUpdate(req.params.id, req.body, {
@@ -47,6 +58,7 @@ router.put("/:id", async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
+// DELETE
 router.delete("/:id", async (req, res) => {
   try {
     const product = await Product.findByIdAndDelete(req.params.id);
