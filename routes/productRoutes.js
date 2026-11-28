@@ -15,21 +15,40 @@ router.post("/", async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
+
 // GET /api/products: list products
 router.get("/", async (req, res) => {
   //It doesn't clash with /:id, because "/" only matches exact path
   try {
-    const { category } = req.query; //pulls category out of the URL's query string
+    const { category, minPrice, maxPrice } = req.query; //pulls category out of the URL's query string
+
     const filter = {}; // an empty filter object - build the query dynamically
     if (category) {
       filter.category = category; // only filter by category if one was asked for
     }
+    if (minPrice || maxPrice) {
+      filter.price = {};
+      if (minPrice) {
+        filter.price.$gte = Number(minPrice); // $gte = "greater than or equal to"
+      }
+      if (maxPrice) {
+        filter.price.$lte = Number(maxPrice); // $lte = "less than or equal to"
+      }
+    }
+    if (Number.isNaN(filter.price.$gte) || Number.isNaN(filter.price?.$lte)) {
+      // NaN ("not a number")
+      return res
+        .status(400)
+        .jason({ message: "minPrice and maxPrice must be numbers" }); // reject prices that aren't numbers, like ?minPrice=abc
+    }
+
     const products = await Product.find(filter);
     res.json(products); // respond with an array
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message }); // why 500? there's no id so the only thing that can go wrong is the server
   }
 });
+
 router.get("/:id", async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -44,6 +63,7 @@ router.get("/:id", async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
+
 // PUT
 router.put("/:id", async (req, res) => {
   try {
@@ -62,6 +82,7 @@ router.put("/:id", async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
+
 // DELETE
 router.delete("/:id", async (req, res) => {
   try {
