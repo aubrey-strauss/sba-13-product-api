@@ -20,8 +20,16 @@ router.post("/", async (req, res) => {
 router.get("/", async (req, res) => {
   //It doesn't clash with /:id, because "/" only matches exact path
   try {
-    const { category, minPrice, maxPrice, sortBy } = req.query; //pulls category out of the URL's query string
+    const {
+      category,
+      minPrice,
+      maxPrice,
+      sortBy,
+      page = 1,
+      limit = 10,
+    } = req.query; //pulls category out of the URL's query string
 
+    // FILTER
     const filter = {}; // an empty filter object - build the query dynamically
     if (category) {
       filter.category = category; // only filter by category if one was asked for
@@ -39,8 +47,10 @@ router.get("/", async (req, res) => {
       // NaN ("not a number")
       return res
         .status(400)
-        .jason({ message: "minPrice and maxPrice must be numbers" }); // reject prices that aren't numbers, like ?minPrice=abc
+        .json({ message: "minPrice and maxPrice must be numbers" }); // reject prices that aren't numbers, like ?minPrice=abc
     }
+
+    // FILTER
     let sort = {}; // decide the sort order: 1 = low to high, -1 = high to low
     if (sortBy === "price_asc") {
       sort = { price: 1 };
@@ -52,8 +62,26 @@ router.get("/", async (req, res) => {
         .json({ message: "sortBy must be price_asc or price_desc " });
     }
 
-    const product = await Product.find(filter).sort(sort);
-    res.json(product); // respond with an array
+    // pagination: turn the text from the URL into whole numbers
+    const pageNum = Number(page);
+    const limitNum = Number(limit);
+    if (
+      !Number.isInteger(pageNum) ||
+      pageNum < 1 ||
+      !Number.isInteger(limitNum) ||
+      limitNum < 1
+    ) {
+      return res
+        .status(400)
+        .json({ message: "page and limit must be whole numbers of 1 or more" });
+    }
+    const skip = (pageNum - 1) * limitNum;
+    const products = await Product.find(filter) //filter, then sort, then skip earlier pages, then take only limit products
+      .sort(sort)
+      .skip(skip)
+      .limit(limitNum);
+
+    res.json(products); // respond with an array
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message }); // why 500? there's no id so the only thing that can go wrong is the server
   }
